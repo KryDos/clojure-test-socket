@@ -1,22 +1,25 @@
 (ns test-clj.core
   (:gen-class)
-  (:use server.socket))
+  (:use server.socket)
+  (:require [clojure.data.json :as json]))
 (import '[java.io BufferedReader InputStreamReader OutputStreamWriter])
 
 (def port 8888)
 
 (defn process-message
   [msg]
-  (str "Message => " msg))
+  (let [message-map (json/read-str msg)]
+    (str (get message-map "command"))))
+
 
 (defn echo-server
   [in out]
   (binding [*in* (BufferedReader. (InputStreamReader. in))
             *out* (OutputStreamWriter. out)]
     (loop []
-      (println (process-message (read-line)))
+      (let [message (read-line)]
+        (println (process-message message)))
       (recur))))
-
 
 (defn -main
   []
