@@ -7,18 +7,24 @@
 (def port 8888)
 (def connections-map (agent {}))
 
+(defn get-connections-list-as-json
+  "returns map-to-json" 
+  [map]
+  (json/write-str @connections-map))
+
+(defn update-connection-map
+  [map k v]
+  (send map #(assoc % k v)))
+
 (defn process-message
   [msg]
   (let [message-map (json/read-str msg)]
-    (send connections-map (fn [conn-map]
-                            (assoc conn-map
-                              (get message-map "id")
-                              (get message-map "command"))))
     (if (= (get message-map "command")
            "show")
-      (json/write-str @connections-map)
-      (str (get message-map "command")))))
-
+      (get-connections-list-as-json @connections-map)
+      (do
+        (update-connection-map connections-map (get message-map "id") (get message-map "command"))
+        (str (get message-map "command"))))))
 
 (defn echo-server
   [in out]
