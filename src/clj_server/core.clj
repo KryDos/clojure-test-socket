@@ -10,12 +10,14 @@
   (send connections-list #(conj % sock)))
 
 (defn remove-from-connections [sock]
-  (send connections-list (fn [c-v]
-                           (filter (fn [el]
-                                     (if-not (= el sock)
-                                       true
-                                       false))
-                                   c-v))))
+  (send connections-list 
+        (fn [c-v]
+         (filter 
+           (fn [el]
+             (if-not (= el sock)
+               true
+               false))
+             c-v))))
 
 (defn process 
   [msg]
