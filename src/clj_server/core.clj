@@ -7,9 +7,12 @@
 (def connections-list (agent []))
 
 (defn update-connection-list [sock]
+  "update our connections list with new value"
   (send connections-list #(conj % sock)))
 
 (defn remove-from-connections [sock]
+  "as we have connections list 
+   we want to remove from this list our sock variable"
   (send connections-list 
         (fn [c-v]
          (filter 
@@ -33,15 +36,19 @@
     (.write writer msg)
     (.flush writer)))
 
+(defn add-to-connections-list-if-needed
+  [sock]
+  (if-not (some #{sock} @connections-list)
+      (update-connection-list sock)
+      nil))
+
 (defn get-into-message-loop
   [sock]
   (println (count @connections-list))
   (let [msg (sock-receive sock)]
     (println "Received: " "\"" msg "\"")
-    (if-not (some #{sock} @connections-list)
-      (do (println "Adding to the list")
-          (update-connection-list sock))
-      (println "Socket alraedy in the list"))
+
+    (add-to-connections-list-if-needed sock)
 
     (if (= msg nil) ;; received nil if connection was closed
       (do (println "connection closed.")
