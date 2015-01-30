@@ -1,30 +1,13 @@
 (ns clj-server.core
   (:gen-class)
-  (:require [clj-server.message-handler :as mh]
-            [clojure.java.io :as io])
+  (:require [clojure.java.io :as io]
+            [clj-server.message_handler :as msg_h]
+            [clj-server.connections_list :as conn_l])
   (:import [java.net ServerSocket]))
 
-(def connections-list (agent []))
+(def ^:const port 8888)
 
-(defn update-connection-list [sock]
-  "update our connections list with new value"
-  (send connections-list #(conj % sock)))
-
-(defn remove-from-connections [sock]
-  "as we have connections list 
-   we want to remove from this list our sock variable"
-  (send connections-list 
-        (fn [c-v]
-         (filter 
-           (fn [el]
-             (if-not (= el sock)
-               true
-               false))
-             c-v))))
-
-(defn process 
-  [msg]
-  (str (.toUpperCase msg) "\n"))
+(def server-status (agent false))
 
 (defn sock-receive
   [socket]
@@ -38,13 +21,13 @@
 
 (defn add-to-connections-list-if-needed
   [sock]
-  (if-not (some #{sock} @connections-list)
-      (update-connection-list sock)
-      nil))
+  (if-not (conn_l/exist? sock)
+    (conn_l/add! sock)
+    nil))
 
 (defn get-into-message-loop
   [sock]
-  (println (count @connections-list))
+  (println (conn_l/count!))
   (let [msg (sock-receive sock)]
     (println "Received: " "\"" msg "\"")
 
@@ -53,8 +36,8 @@
     (if (= msg nil) ;; received nil if connection was closed
       (do (println "connection closed.")
           (.close sock)
-          (remove-from-connections sock))
-      (sock-send sock (process msg))))
+          (conn_l/remove! sock))
+      (sock-send sock (msg_h/process msg))))
   (recur sock))
 
 (defn accept-and-process
@@ -65,8 +48,10 @@
 
 (defn -main 
   []
-  (let [l-socket (ServerSocket. 8888)]
+  (let [l-socket (ServerSocket. port)]
     (future (accept-and-process l-socket))
     (println "Server started...")))
 
-
+(defn start-server
+  []
+  (.start (Thread. -main)))
