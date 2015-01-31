@@ -7,51 +7,41 @@
 
 (def ^:const port 8888)
 
-(def server-status (agent false))
-
 (defn sock-receive
+  "receive message from socket"
   [socket]
   (.readLine (io/reader socket)))
 
 (defn sock-send
+  "send message to socket"
   [socket msg]
   (let [writer (io/writer socket)]
     (.write writer msg)
     (.flush writer)))
 
-(defn add-to-connections-list-if-needed
-  [sock]
-  (if-not (conn_l/exist? sock)
-    (conn_l/add! sock)
-    nil))
-
 (defn get-into-message-loop
+  "message loop.
+  trying to receive message from socket, process it and send answer back to socket"
   [sock]
-  (println (conn_l/count!))
   (let [msg (sock-receive sock)]
-    (println "Received: " "\"" msg "\"")
-
-    (add-to-connections-list-if-needed sock)
-
-    (if (= msg nil) ;; received nil if connection was closed
-      (do (println "connection closed.")
-          (.close sock)
-          (conn_l/remove! sock))
-      (sock-send sock (msg_h/process msg))))
+    (sock-send sock (msg_h/process msg))))
   (recur sock))
 
 (defn accept-and-process
+  "accepting new connection and run message handler in new thread"
   [l-socket]
   (let [socket (.accept l-socket)]
     (future (get-into-message-loop socket)))
   (recur l-socket))
 
-(defn -main 
+(defn -main
+  "run server"
   []
   (let [l-socket (ServerSocket. port)]
     (future (accept-and-process l-socket))
     (println "Server started...")))
 
 (defn start-server
+  "using this function to run server in the background thread"
   []
   (.start (Thread. -main)))
