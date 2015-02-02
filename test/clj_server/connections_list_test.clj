@@ -4,8 +4,20 @@
 
 (deftest add!-test
   (testing "Trying to add element to the agent"
-    (conn_l/add! "test string")
+    (conn_l/add! :devices "test string")
     (Thread/sleep 1000)
-    (is (= (conn_l/count!) 1))))
+    (is (= (conn_l/count! :devices) 1))
+    (conn_l/remove! :devices "test string")
+    (Thread/sleep 1000)
+    (is (= (conn_l/count! :devices) 0))))
+
+(deftest remove!-test
+  (testing "Remove element from agent"
+    (conn_l/add! :devices "test string 2")
+    (Thread/sleep 1000)
+    (is (= (conn_l/count! :devices) 1))
+    (conn_l/remove! :devices "test string 2")
+    (Thread/sleep 1000)
+    (is (= (conn_l/count! :devices) 0))))
 
 

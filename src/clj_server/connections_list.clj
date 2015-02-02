@@ -5,24 +5,28 @@
 (def devices (agent []))
 (def clients (agent []))
 
+(defn- get-agent-based-on-keyword
+  [keyword]
+  (if (= :devices keyword)
+    devices
+    (if (= :clients keyword)
+      clients
+      nil)))
+
 (defn add!
   [to connection]
-  (send (eval (symbol to)) #(conj % connection))
-  ;;(send current-connections #(conj % connection)))
+  (send (get-agent-based-on-keyword to) #(conj % connection)))
 
 (defn remove!
   [from connection]
-  (send (eval (symbol from)) (fn [c] (filter #(not= % connection) c))))
-  ;;(send current-connections (fn [c] (filter #(not= % connection) c))))
+  (send (get-agent-based-on-keyword from) (fn [c] (filter #(not= % connection) c))))
 
 (defn exist? 
   [where connection]
-  ;;(if (some #{connection} @current-connections)
-  (if (some #{connection} @(eval (symbol where)))
+  (if (some #{connection} @(get-agent-based-on-keyword where))
     true
     false))
 
 (defn count!
   [what]
-  ;;(count @current-connections))
-  (count @(eval (symbol what))))
+  (count @(get-agent-based-on-keyword what)))
