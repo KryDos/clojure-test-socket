@@ -1,22 +1,38 @@
 (ns clj-server.message_handler
   (:gen-class)
-  (:require [clojure.data.json :as json]))
+  (:require [clojure.data.json :as json]
+            [clj-server.connections_list :as conn_l]))
 
 (defn- is-message-from-devcie?
   [json-message]
   (if (:device json-message)
     true
     false))
-(defn- process-message-from-device
+
+(defn- is-message-from-client?
   [json-message]
+  (if (:client json-message)
+    true
+    false))
+
+(defn- process-message-from-device
+  [sock json-message]
+  
+  (if-not (conn_l/exist? :devices sock)
+    (conn_l/add! :devices sock))
+  
   (str "this was message from device" "\n"))
 
 (defn- process-message-from-client 
-  [json-message]
+  [sock json-message]
+  
+  (if-not (conn_l/exist? :clients sock)
+    (conn_l/add! :clients sock))
+  
   (str "this was message from client" "\n"))
 
 (defn process
-  [msg]
+  [sock msg]
   (let [json-message (try 
                        (json/read-str msg
                                       :key-fn keyword)
@@ -27,8 +43,11 @@
       json-message
       (do
         (if (is-message-from-devcie? json-message)
-          (process-message-from-device json-message)
-          (process-message-from-client json-message))))))
+          (process-message-from-device sock json-message)
+          (if (is-message-from-client? json-message)
+            (process-message-from-client sock json-message)
+            nil))))))
+
 
     
 
