@@ -5,6 +5,11 @@
             [clj-server.connections_list :as conn_l])
   (:import [java.net ServerSocket]))
 
+(defn- show-debug-info
+  []
+  (println "Devices => " (conn_l/count! :devices))
+  (println "Clients => " (conn_l/count! :clients)))
+
 (def ^:const port 8888)
 
 (defn sock-receive
@@ -23,16 +28,15 @@
   "message loop.
   trying to receive message from socket, process it and send answer back to socket"
   [sock]
-  (println "Devices => " (conn_l/count! :devices))
-  (println "Clients => " (conn_l/count! :clients))
+  (show-debug-info) ;; display debug information
   (let [msg (sock-receive sock)]
     (if (nil? msg)
       (if (conn_l/exist? :devices sock)
         (conn_l/remove! :devices sock)
         (conn_l/remove! :clients sock))
-      (sock-send sock (msg_h/process sock msg))))
-  (recur sock))
-  
+      (do
+        (sock-send sock (msg_h/process sock msg))
+        (recur sock)))))
 
 (defn accept-and-process
   "accepting new connection and run message handler in new thread"
